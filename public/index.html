@@ -3,142 +3,216 @@
 <head>
   <meta charset="UTF-8" />
   <title>License Admin Panel</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
     body {
       margin: 0;
-      padding: 0;
-      background: #0f172a;
       font-family: Arial, Helvetica, sans-serif;
+      background: linear-gradient(120deg, #0f172a, #020617);
       color: #e5e7eb;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      min-height: 100vh;
     }
 
-    .panel {
-      background: #020617;
+    .container {
+      max-width: 900px;
+      margin: 40px auto;
       padding: 30px;
-      border-radius: 10px;
-      width: 100%;
-      max-width: 420px;
-      box-shadow: 0 0 20px rgba(0,0,0,.6);
+      background: rgba(15, 23, 42, 0.85);
+      border-radius: 12px;
+      box-shadow: 0 0 30px rgba(0,0,0,0.6);
     }
 
     h1 {
       margin-top: 0;
-      text-align: center;
       margin-bottom: 20px;
-      font-size: 22px;
+    }
+
+    h2 {
+      margin-top: 40px;
+      border-bottom: 1px solid #334155;
+      padding-bottom: 8px;
+    }
+
+    label {
+      display: block;
+      margin-top: 12px;
+      margin-bottom: 4px;
+      font-size: 14px;
     }
 
     input {
       width: 100%;
       padding: 10px;
-      margin-bottom: 12px;
       border-radius: 6px;
       border: none;
-      background: #1e293b;
+      outline: none;
+      background: #020617;
       color: #e5e7eb;
-      font-size: 14px;
     }
 
     button {
-      width: 100%;
-      padding: 10px;
-      margin-top: 8px;
+      margin-top: 12px;
+      padding: 10px 16px;
       border-radius: 6px;
       border: none;
       cursor: pointer;
+      font-weight: bold;
       background: #2563eb;
       color: white;
-      font-size: 14px;
     }
 
-    button:hover {
-      background: #1d4ed8;
+    button.danger {
+      background: #dc2626;
+    }
+
+    button.secondary {
+      background: #475569;
     }
 
     pre {
-      margin-top: 15px;
-      padding: 10px;
       background: #020617;
-      border: 1px solid #1e293b;
+      padding: 12px;
       border-radius: 6px;
-      max-height: 200px;
-      overflow: auto;
-      font-size: 13px;
+      margin-top: 10px;
+      white-space: pre-wrap;
+      word-break: break-word;
     }
 
-    footer {
-      text-align: center;
-      font-size: 12px;
-      margin-top: 10px;
-      opacity: 0.6;
+    .row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+
+    .status {
+      margin-top: 15px;
+      padding: 10px;
+      border-radius: 6px;
+      background: #020617;
+      color: #fca5a5;
+    }
+
+    .ok {
+      color: #86efac;
     }
   </style>
 </head>
 <body>
 
-  <div class="panel">
-    <h1>🔐 License Admin Panel</h1>
+<div class="container">
+  <h1>🔐 License Admin Panel</h1>
 
-    <input id="licenseKey" placeholder="License Key (VD: ABC-123-XYZ)" />
-    <input id="hwid" placeholder="HWID (VD: PC-TEST-001)" />
+  <!-- ================= USER ACTION ================= -->
+  <h2>Client / User</h2>
 
-    <button onclick="activate()">Activate License</button>
-    <button onclick="verify()">Verify License</button>
+  <label>License Key</label>
+  <input id="licenseKey" placeholder="XXXX-XXXX-XXXX" />
 
-    <pre id="result">Chưa có dữ liệu</pre>
+  <label>HWID</label>
+  <input id="hwid" placeholder="PC-0101" />
 
-    <footer>
-      Cloudflare Pages + Workers
-    </footer>
-  </div>
+  <button onclick="activate()">Activate License</button>
+  <button class="secondary" onclick="verify()">Verify License</button>
+
+  <!-- ================= ADMIN ================= -->
+  <h2>Admin</h2>
+
+  <button onclick="createKey()">Create License Key</button>
+  <button class="secondary" onclick="resetKey()">Reset Key</button>
+  <button class="danger" onclick="lockKey()">Lock (Revoke) Key</button>
+
+  <!-- ================= SERVER KEY ================= -->
+  <h2>Server / CLI</h2>
+
+  <p>Server key (dùng cho shell script):</p>
+  <pre id="serverKey">x-server-key: &lt;SERVER_KEY_CỦA_BẠN&gt;</pre>
+
+  <p>Ví dụ verify bằng shell:</p>
+  <pre>
+curl -X POST https://license-worker.kenstom6.workers.dev/verify-cli \
+-H "Content-Type: application/json" \
+-H "x-server-key: &lt;SERVER_KEY&gt;" \
+-d '{"licenseKey":"KEY","hwid":"PC-0101"}'
+  </pre>
+
+  <!-- ================= RESULT ================= -->
+  <div id="result" class="status">Chưa có thao tác</div>
+</div>
 
 <script>
-  // ===== BACKEND API (WORKER CỦA BẠN) =====
-  const API_URL = "https://license-worker.kenstom6.workers.dev";
+/* ================= CONFIG ================= */
+const API = "https://license-worker.kenstom6.workers.dev";
 
-  // Nếu bạn đã bật API_SECRET trong Worker
-  const API_SECRET = "my_super_secret_123"; // đổi nếu cần
+/* ================= HELPERS ================= */
+function showResult(data, ok = false) {
+  const el = document.getElementById("result");
+  el.textContent = JSON.stringify(data, null, 2);
+  el.className = "status " + (ok ? "ok" : "");
+}
 
-  async function activate() {
-    callApi("/activate");
+async function post(path, body) {
+  const res = await fetch(API + path, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(body)
+  });
+  return res.json();
+}
+
+/* ================= CLIENT ================= */
+async function activate() {
+  try {
+    const licenseKey = document.getElementById("licenseKey").value;
+    const hwid = document.getElementById("hwid").value;
+    const data = await post("/activate", { licenseKey, hwid });
+    showResult(data, !!data.success);
+  } catch {
+    showResult({ error: "Lỗi kết nối API" });
   }
+}
 
-  async function verify() {
-    callApi("/verify");
+async function verify() {
+  try {
+    const licenseKey = document.getElementById("licenseKey").value;
+    const hwid = document.getElementById("hwid").value;
+    const data = await post("/verify", { licenseKey, hwid });
+    showResult(data, !!data.valid);
+  } catch {
+    showResult({ error: "Lỗi kết nối API" });
   }
+}
 
-  async function callApi(path) {
-    const licenseKey = document.getElementById("licenseKey").value.trim();
-    const hwid = document.getElementById("hwid").value.trim();
-    const result = document.getElementById("result");
-
-    if (!licenseKey || !hwid) {
-      result.textContent = "❌ Vui lòng nhập License Key và HWID";
-      return;
-    }
-
-    try {
-      const res = await fetch(API_URL + path, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-api-secret": API_SECRET
-        },
-        body: JSON.stringify({ licenseKey, hwid })
-      });
-
-      const data = await res.json();
-      result.textContent = JSON.stringify(data, null, 2);
-    } catch (err) {
-      result.textContent = "❌ Không kết nối được tới License Server";
-    }
+/* ================= ADMIN ================= */
+async function createKey() {
+  try {
+    const data = await post("/create", {});
+    document.getElementById("licenseKey").value = data.licenseKey;
+    showResult(data, true);
+  } catch {
+    showResult({ error: "Không tạo được key" });
   }
+}
+
+async function resetKey() {
+  try {
+    const licenseKey = document.getElementById("licenseKey").value;
+    const data = await post("/reset", { licenseKey });
+    showResult(data, true);
+  } catch {
+    showResult({ error: "Reset thất bại" });
+  }
+}
+
+async function lockKey() {
+  try {
+    const licenseKey = document.getElementById("licenseKey").value;
+    const data = await post("/lock", { licenseKey });
+    showResult(data, true);
+  } catch {
+    showResult({ error: "Lock key thất bại" });
+  }
+}
 </script>
 
 </body>
