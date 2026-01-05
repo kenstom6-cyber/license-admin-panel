@@ -1,0 +1,83 @@
+<script>
+/* =========================================
+   ADMIN PANEL LOGIN SCRIPT – FIX HOÀN CHỈNH
+   Đồng bộ 100% với server API
+========================================= */
+
+async function checkServer() {
+    try {
+        const res = await fetch('/api/health');
+        if (!res.ok) throw new Error();
+
+        // Server OK → ẩn lỗi
+        const errorDiv = document.getElementById('error');
+        if (errorDiv) errorDiv.style.display = 'none';
+    } catch (e) {
+        const errorDiv = document.getElementById('error');
+        if (errorDiv) {
+            errorDiv.textContent = '❌ Lỗi kết nối server';
+            errorDiv.style.display = 'block';
+        }
+    }
+}
+
+document.getElementById('loginBtn').addEventListener('click', async function () {
+    const username = document.getElementById('username').value.trim();
+    const password = document.getElementById('password').value.trim();
+
+    const errorDiv = document.getElementById('error');
+    const btn = this;
+    const btnText = btn.querySelector('span') || btn;
+
+    if (!username || !password) {
+        errorDiv.textContent = '❌ Vui lòng nhập đầy đủ thông tin';
+        errorDiv.style.display = 'block';
+        return;
+    }
+
+    // Disable button
+    btn.disabled = true;
+    btnText.textContent = 'Đang đăng nhập...';
+
+    try {
+        const res = await fetch('/api/admin/login', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            credentials: 'include',
+            body: JSON.stringify({
+                username: username,
+                password: password
+            })
+        });
+
+        const data = await res.json();
+
+        if (res.ok && data.success === true) {
+            // Đăng nhập thành công
+            window.location.href = '/dashboard.html';
+            return;
+        }
+
+        // Sai tài khoản
+        errorDiv.textContent = '❌ Sai tài khoản hoặc mật khẩu';
+        errorDiv.style.display = 'block';
+
+    } catch (error) {
+        console.error('Login error:', error);
+        errorDiv.textContent = '❌ Lỗi kết nối server';
+        errorDiv.style.display = 'block';
+    } finally {
+        // Reset button
+        btn.disabled = false;
+        btnText.textContent = 'Đăng Nhập';
+    }
+});
+
+// ========== KHỞI TẠO ==========
+window.addEventListener('DOMContentLoaded', function () {
+    checkServer();
+    document.getElementById('username').focus();
+});
+</script>

@@ -1,0 +1,1117 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Admin Panel</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background: #f5f5f5;
+            color: #333;
+        }
+        
+        /* Loading Screen */
+        #loadingScreen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+        }
+        
+        .loader {
+            text-align: center;
+        }
+        
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 5px solid #f3f3f3;
+            border-top: 5px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        /* Navbar */
+        .navbar {
+            background: white;
+            padding: 0 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .logo i {
+            color: #667eea;
+            font-size: 24px;
+        }
+        
+        .logo h1 {
+            font-size: 20px;
+            font-weight: 600;
+        }
+        
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .refresh-btn {
+            background: none;
+            border: none;
+            color: #667eea;
+            font-size: 16px;
+            cursor: pointer;
+            padding: 5px;
+        }
+        
+        .refresh-btn:hover {
+            color: #5a67d8;
+        }
+        
+        .username {
+            color: #666;
+        }
+        
+        .logout-btn {
+            background: #ef4444;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        
+        .logout-btn:hover {
+            background: #dc2626;
+        }
+        
+        /* Main Content */
+        .container {
+            max-width: 1200px;
+            margin: 20px auto;
+            padding: 0 20px;
+        }
+        
+        /* Stats Cards */
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .stat-card {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            border-left: 4px solid #667eea;
+        }
+        
+        .stat-card:nth-child(2) { border-color: #10b981; }
+        .stat-card:nth-child(3) { border-color: #f59e0b; }
+        .stat-card:nth-child(4) { border-color: #ef4444; }
+        
+        .stat-title {
+            color: #666;
+            font-size: 14px;
+            margin-bottom: 10px;
+        }
+        
+        .stat-number {
+            font-size: 32px;
+            font-weight: 600;
+            color: #333;
+        }
+        
+        /* Tabs */
+        .tabs {
+            background: white;
+            border-radius: 10px;
+            overflow: hidden;
+            margin-bottom: 20px;
+        }
+        
+        .tab-header {
+            display: flex;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        
+        .tab-btn {
+            padding: 15px 20px;
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            color: #6b7280;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s;
+        }
+        
+        .tab-btn.active {
+            color: #667eea;
+            border-bottom-color: #667eea;
+        }
+        
+        .tab-btn:hover {
+            background: #f9fafb;
+        }
+        
+        .tab-content {
+            padding: 20px;
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        /* Table */
+        .table-container {
+            background: white;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        th {
+            background: #f9fafb;
+            padding: 12px;
+            text-align: left;
+            font-weight: 600;
+            color: #4b5563;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        
+        td {
+            padding: 12px;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        
+        tr:hover {
+            background: #f9fafb;
+        }
+        
+        /* Status badges */
+        .status-badge {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            display: inline-block;
+        }
+        
+        .status-active { background: #d1fae5; color: #065f46; }
+        .status-locked { background: #fef3c7; color: #92400e; }
+        .status-expired { background: #fee2e2; color: #991b1b; }
+        
+        /* Buttons */
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: background 0.3s;
+        }
+        
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #5a67d8;
+        }
+        
+        .btn-success {
+            background: #10b981;
+            color: white;
+        }
+        
+        .btn-success:hover {
+            background: #059669;
+        }
+        
+        /* Action buttons */
+        .action-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 5px;
+            margin: 0 2px;
+            color: #6b7280;
+        }
+        
+        .action-btn:hover {
+            color: #374151;
+        }
+        
+        /* Empty state */
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: #6b7280;
+        }
+        
+        .empty-state i {
+            font-size: 48px;
+            color: #d1d5db;
+            margin-bottom: 15px;
+        }
+        
+        /* Notification */
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 15px 20px;
+            border-radius: 5px;
+            color: white;
+            z-index: 1000;
+            animation: slideIn 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        
+        .notification.success { background: #10b981; }
+        .notification.error { background: #ef4444; }
+        .notification.info { background: #3b82f6; }
+        
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            min-width: 300px;
+            max-width: 500px;
+            width: 90%;
+        }
+        
+        .modal h3 {
+            margin-bottom: 20px;
+            color: #333;
+        }
+        
+        .modal-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+            justify-content: flex-end;
+        }
+    </style>
+</head>
+<body>
+    <!-- Loading Screen -->
+    <div id="loadingScreen">
+        <div class="loader">
+            <div class="spinner"></div>
+            <p>Đang kiểm tra đăng nhập...</p>
+        </div>
+    </div>
+
+    <!-- Main Content (hidden initially) -->
+    <div id="mainContent" style="display: none;">
+        <!-- Navbar -->
+        <nav class="navbar">
+            <div class="logo">
+                <i class="fas fa-server"></i>
+                <h1>Key Admin Dashboard</h1>
+            </div>
+            
+            <div class="user-info">
+                <button class="refresh-btn" onclick="refreshAllData()" title="Refresh">
+                    <i class="fas fa-sync-alt"></i>
+                </button>
+                <span class="username" id="username">Admin</span>
+                <button class="logout-btn" onclick="logout()">
+                    <i class="fas fa-sign-out-alt"></i> Đăng xuất
+                </button>
+            </div>
+        </nav>
+
+        <!-- Main Container -->
+        <div class="container">
+            <!-- Stats -->
+            <div class="stats">
+                <div class="stat-card">
+                    <div class="stat-title">Server Keys</div>
+                    <div class="stat-number" id="serverKeysCount">0</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-title">User Keys</div>
+                    <div class="stat-number" id="userKeysCount">0</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-title">Total Usage</div>
+                    <div class="stat-number" id="totalUsage">0</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-title">Active Keys</div>
+                    <div class="stat-number" id="activeKeys">0</div>
+                </div>
+            </div>
+
+            <!-- Tabs -->
+            <div class="tabs">
+                <div class="tab-header">
+                    <button class="tab-btn active" onclick="switchTab('server')">
+                        <i class="fas fa-server"></i> Server Keys
+                    </button>
+                    <button class="tab-btn" onclick="switchTab('user')">
+                        <i class="fas fa-users"></i> User Keys
+                    </button>
+                    <button class="tab-btn" onclick="switchTab('generate')">
+                        <i class="fas fa-plus-circle"></i> Generate Key
+                    </button>
+                    <button class="tab-btn" onclick="switchTab('api')">
+                        <i class="fas fa-code"></i> API Docs
+                    </button>
+                </div>
+
+                <!-- Server Keys Tab -->
+                <div class="tab-content active" id="tabServer">
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Key</th>
+                                    <th>Name</th>
+                                    <th>Status</th>
+                                    <th>Usage</th>
+                                    <th>Expires</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="serverKeysBody">
+                                <!-- Server keys will be loaded here -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- User Keys Tab -->
+                <div class="tab-content" id="tabUser">
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Key</th>
+                                    <th>User ID</th>
+                                    <th>Status</th>
+                                    <th>Usage</th>
+                                    <th>Created</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="userKeysBody">
+                                <!-- User keys will be loaded here -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Generate Key Tab -->
+                <div class="tab-content" id="tabGenerate">
+                    <div style="max-width: 500px; margin: 0 auto;">
+                        <h3 style="margin-bottom: 20px; color: #333;">Generate New Server Key</h3>
+                        
+                        <div style="margin-bottom: 15px;">
+                            <label style="display: block; margin-bottom: 5px; color: #666;">Name (optional)</label>
+                            <input type="text" id="keyName" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px;">
+                        </div>
+                        
+                        <div style="margin-bottom: 15px;">
+                            <label style="display: block; margin-bottom: 5px; color: #666;">Description (optional)</label>
+                            <textarea id="keyDescription" rows="3" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px;"></textarea>
+                        </div>
+                        
+                        <div style="margin-bottom: 20px;">
+                            <label style="display: block; margin-bottom: 5px; color: #666;">Expires in (days)</label>
+                            <input type="number" id="keyExpires" value="30" min="1" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px;">
+                        </div>
+                        
+                        <button class="btn btn-primary" onclick="generateServerKey()" style="width: 100%;">
+                            <i class="fas fa-key"></i> Generate Server Key
+                        </button>
+                    </div>
+                </div>
+
+                <!-- API Docs Tab -->
+                <div class="tab-content" id="tabApi">
+                    <div style="background: #f8fafc; padding: 20px; border-radius: 10px;">
+                        <h3 style="margin-bottom: 15px; color: #333;">API Documentation</h3>
+                        
+                        <div style="margin-bottom: 20px;">
+                            <h4 style="color: #667eea; margin-bottom: 10px;">Validate Server Key</h4>
+                            <div style="background: #1e293b; color: white; padding: 15px; border-radius: 5px; font-family: monospace; font-size: 14px;">
+                                GET /api/server/validate/{key}
+                            </div>
+                            <p style="margin-top: 10px; color: #666; font-size: 14px;">
+                                Use this endpoint in your Android Shell Script to validate server keys.
+                            </p>
+                        </div>
+                        
+                        <div style="margin-bottom: 20px;">
+                            <h4 style="color: #10b981; margin-bottom: 10px;">Validate User Key</h4>
+                            <div style="background: #1e293b; color: white; padding: 15px; border-radius: 5px; font-family: monospace; font-size: 14px;">
+                                GET /api/user/validate/{key}
+                            </div>
+                        </div>
+                        
+                        <div>
+                            <h4 style="color: #f59e0b; margin-bottom: 10px;">Example (Android Shell)</h4>
+                            <pre style="background: #1e293b; color: white; padding: 15px; border-radius: 5px; font-family: monospace; font-size: 12px; overflow-x: auto;">
+#!/bin/bash
+KEY="YOUR_SERVER_KEY"
+RESPONSE=$(curl -s "https://admin-panel-nxvh.onrender.com/api/server/validate/$KEY")
+
+if echo "$RESPONSE" | grep -q '"valid":true'; then
+    echo "✅ Key is valid"
+else
+    echo "❌ Invalid key"
+    exit 1
+fi</pre>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Confirmation Modal -->
+    <div id="confirmModal" class="modal">
+        <div class="modal-content">
+            <h3 id="confirmTitle">Xác nhận</h3>
+            <p id="confirmMessage">Bạn có chắc chắn muốn thực hiện hành động này?</p>
+            <div class="modal-buttons">
+                <button class="btn" onclick="closeModal()">Hủy</button>
+                <button class="btn btn-primary" id="confirmButton">Xác nhận</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notification Container -->
+    <div id="notificationContainer"></div>
+
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <script>
+        // ========== GLOBAL VARIABLES ==========
+        let currentTab = 'server';
+        let serverKeys = [];
+        let userKeys = [];
+        let confirmCallback = null;
+
+        // ========== MODAL FUNCTIONS ==========
+        function showModal(title, message, callback) {
+            document.getElementById('confirmTitle').textContent = title;
+            document.getElementById('confirmMessage').textContent = message;
+            document.getElementById('confirmModal').style.display = 'flex';
+            confirmCallback = callback;
+        }
+
+        function closeModal() {
+            document.getElementById('confirmModal').style.display = 'none';
+            confirmCallback = null;
+        }
+
+        document.getElementById('confirmButton').onclick = function() {
+            if (confirmCallback) {
+                confirmCallback();
+            }
+            closeModal();
+        };
+
+        // ========== AUTH FUNCTIONS ==========
+        async function checkAuth() {
+            try {
+                const response = await fetch('/api/auth/check');
+                const data = await response.json();
+                
+                if (data.authenticated) {
+                    // Đã đăng nhập, hiển thị dashboard
+                    document.getElementById('loadingScreen').style.display = 'none';
+                    document.getElementById('mainContent').style.display = 'block';
+                    
+                    // Cập nhật tên admin
+                    if (data.admin) {
+                        document.getElementById('username').textContent = data.admin.username;
+                    }
+                    
+                    // Khởi tạo dashboard
+                    initDashboard();
+                    return true;
+                } else {
+                    // Chưa đăng nhập, chuyển về trang login
+                    window.location.href = '/';
+                    return false;
+                }
+            } catch (error) {
+                console.error('Auth check failed:', error);
+                // Nếu lỗi mạng, vẫn hiển thị dashboard nếu có session cũ
+                const isLoggedIn = localStorage.getItem('admin_logged_in') === 'true';
+                if (isLoggedIn) {
+                    document.getElementById('loadingScreen').style.display = 'none';
+                    document.getElementById('mainContent').style.display = 'block';
+                    initDashboard();
+                    return true;
+                } else {
+                    window.location.href = '/';
+                    return false;
+                }
+            }
+        }
+
+        async function logout() {
+            showModal(
+                'Đăng xuất',
+                'Bạn có chắc muốn đăng xuất?',
+                async function() {
+                    try {
+                        await fetch('/api/admin/logout', { 
+                            method: 'POST' 
+                        });
+                    } catch (error) {
+                        console.error('Logout API error:', error);
+                    }
+                    
+                    // Xóa local storage
+                    localStorage.clear();
+                    
+                    // Chuyển về trang login
+                    window.location.href = '/';
+                }
+            );
+        }
+
+        // ========== NOTIFICATION SYSTEM ==========
+        function showNotification(message, type = 'info') {
+            const container = document.getElementById('notificationContainer');
+            const notification = document.createElement('div');
+            notification.className = `notification ${type}`;
+            notification.innerHTML = `
+                <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-circle' : 'info-circle'}"></i>
+                <span>${message}</span>
+            `;
+            
+            container.appendChild(notification);
+            
+            // Auto remove after 5 seconds
+            setTimeout(() => {
+                notification.style.opacity = '0';
+                setTimeout(() => notification.remove(), 300);
+            }, 5000);
+        }
+
+        // ========== HELPER FUNCTIONS ==========
+        function getStatusClass(status) {
+            switch (status) {
+                case 'active': return 'status-active';
+                case 'locked': return 'status-locked';
+                case 'expired': return 'status-expired';
+                default: return 'status-locked';
+            }
+        }
+
+        function getStatusText(status) {
+            switch (status) {
+                case 'active': return 'Active';
+                case 'locked': return 'Locked';
+                case 'expired': return 'Expired';
+                default: return 'Unknown';
+            }
+        }
+
+        function copyToClipboard(text) {
+            navigator.clipboard.writeText(text)
+                .then(() => showNotification('✅ Key đã được copy vào clipboard', 'success'))
+                .catch(err => showNotification('❌ Lỗi copy key', 'error'));
+        }
+
+        // ========== TAB MANAGEMENT ==========
+        function switchTab(tabName) {
+            // Update tab buttons
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.remove('active');
+                if (btn.getAttribute('onclick').includes(tabName)) {
+                    btn.classList.add('active');
+                }
+            });
+            
+            // Update tab content
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.remove('active');
+                if (content.id === 'tab' + capitalizeFirstLetter(tabName)) {
+                    content.classList.add('active');
+                }
+            });
+            
+            currentTab = tabName;
+            
+            // Load data for specific tabs if needed
+            if (tabName === 'server') {
+                loadServerKeys();
+            } else if (tabName === 'user') {
+                loadUserKeys();
+            }
+        }
+
+        function capitalizeFirstLetter(string) {
+            return string.charAt(0).toUpperCase() + string.slice(1);
+        }
+
+        // ========== DATA LOADING (REAL API CALLS) ==========
+        async function loadServerKeys() {
+            try {
+                const response = await fetch('/api/server-keys');
+                const data = await response.json();
+                
+                if (data.success) {
+                    serverKeys = data.keys || [];
+                    renderServerKeys();
+                } else {
+                    showNotification('❌ Lỗi tải server keys: ' + (data.error || 'Unknown error'), 'error');
+                }
+            } catch (error) {
+                console.error('Error loading server keys:', error);
+                showNotification('❌ Lỗi kết nối khi tải server keys', 'error');
+                
+                // Show empty state
+                document.getElementById('serverKeysBody').innerHTML = `
+                    <tr>
+                        <td colspan="7" style="text-align: center; padding: 40px; color: #9ca3af;">
+                            <i class="fas fa-exclamation-triangle" style="font-size: 48px; margin-bottom: 15px; display: block; color: #f59e0b;"></i>
+                            <p>Lỗi tải dữ liệu</p>
+                            <button onclick="loadServerKeys()" class="btn" style="margin-top: 10px;">Thử lại</button>
+                        </td>
+                    </tr>
+                `;
+            }
+        }
+
+        async function loadUserKeys() {
+            try {
+                const response = await fetch('/api/user-keys');
+                const data = await response.json();
+                
+                if (data.success) {
+                    userKeys = data.keys || [];
+                    renderUserKeys();
+                } else {
+                    showNotification('❌ Lỗi tải user keys: ' + (data.error || 'Unknown error'), 'error');
+                }
+            } catch (error) {
+                console.error('Error loading user keys:', error);
+                showNotification('❌ Lỗi kết nối khi tải user keys', 'error');
+            }
+        }
+
+        async function loadStats() {
+            try {
+                const response = await fetch('/api/stats');
+                const data = await response.json();
+                
+                if (data.success) {
+                    const stats = data.stats;
+                    
+                    document.getElementById('serverKeysCount').textContent = stats.total_server_keys || 0;
+                    document.getElementById('userKeysCount').textContent = stats.total_user_keys || 0;
+                    
+                    // Calculate total usage from loaded data
+                    const totalUsage = [...serverKeys, ...userKeys].reduce((sum, key) => {
+                        return sum + (key.usage_count || 0);
+                    }, 0);
+                    
+                    document.getElementById('totalUsage').textContent = totalUsage;
+                    
+                    // Calculate active keys
+                    const activeKeys = stats.active_server_keys + stats.active_user_keys;
+                    document.getElementById('activeKeys').textContent = activeKeys;
+                }
+            } catch (error) {
+                console.error('Error loading stats:', error);
+            }
+        }
+
+        // ========== RENDER FUNCTIONS ==========
+        function renderServerKeys() {
+            const tbody = document.getElementById('serverKeysBody');
+            
+            if (!serverKeys || serverKeys.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="7" style="text-align: center; padding: 40px; color: #9ca3af;">
+                            <i class="fas fa-server" style="font-size: 48px; margin-bottom: 15px; display: block;"></i>
+                            <p>Chưa có server key nào</p>
+                            <p style="font-size: 14px; margin-top: 5px;">Tạo server key đầu tiên của bạn</p>
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+            
+            let html = '';
+            serverKeys.forEach(key => {
+                const isExpired = key.expires_at && new Date(key.expires_at) < new Date();
+                const finalStatus = isExpired ? 'expired' : key.status;
+                const isLocked = key.status === 'locked';
+                
+                html += `
+                    <tr>
+                        <td>${key.id}</td>
+                        <td>
+                            <code style="background: #f3f4f6; padding: 4px 8px; border-radius: 4px; cursor: pointer;"
+                                  onclick="copyToClipboard('${key.key}')"
+                                  title="Click để copy">
+                                ${key.key.substring(0, 12)}...
+                            </code>
+                        </td>
+                        <td>${key.name || '-'}</td>
+                        <td>
+                            <span class="status-badge ${getStatusClass(finalStatus)}">
+                                ${getStatusText(finalStatus)}
+                            </span>
+                        </td>
+                        <td>${key.usage_count || 0}</td>
+                        <td>${key.expires_at ? new Date(key.expires_at).toLocaleDateString('vi-VN') : 'Never'}</td>
+                        <td>
+                            <button class="action-btn" onclick="resetKey(${key.id}, 'server')" title="Reset">
+                                <i class="fas fa-redo" style="color: #10b981;"></i>
+                            </button>
+                            <button class="action-btn" onclick="toggleLockKey(${key.id}, 'server')" title="${isLocked ? 'Unlock' : 'Lock'}">
+                                <i class="fas ${isLocked ? 'fa-unlock' : 'fa-lock'}" style="color: #f59e0b;"></i>
+                            </button>
+                            <button class="action-btn" onclick="deleteKey(${key.id}, 'server')" title="Delete">
+                                <i class="fas fa-trash" style="color: #ef4444;"></i>
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            });
+            
+            tbody.innerHTML = html;
+        }
+
+        function renderUserKeys() {
+            const tbody = document.getElementById('userKeysBody');
+            
+            if (!userKeys || userKeys.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="7" style="text-align: center; padding: 40px; color: #9ca3af;">
+                            <i class="fas fa-users" style="font-size: 48px; margin-bottom: 15px; display: block;"></i>
+                            <p>Chưa có user key nào</p>
+                            <p style="font-size: 14px; margin-top: 5px;">Tạo user key đầu tiên</p>
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+            
+            let html = '';
+            userKeys.forEach(key => {
+                const isExpired = key.expires_at && new Date(key.expires_at) < new Date();
+                const finalStatus = isExpired ? 'expired' : key.status;
+                
+                html += `
+                    <tr>
+                        <td>${key.id}</td>
+                        <td>
+                            <code style="background: #f3f4f6; padding: 4px 8px; border-radius: 4px; cursor: pointer;"
+                                  onclick="copyToClipboard('${key.key}')"
+                                  title="Click để copy">
+                                ${key.key.substring(0, 12)}...
+                            </code>
+                        </td>
+                        <td>${key.user_id || '-'}</td>
+                        <td>
+                            <span class="status-badge ${getStatusClass(finalStatus)}">${getStatusText(finalStatus)}</span>
+                        </td>
+                        <td>${key.usage_count || 0}</td>
+                        <td>${key.created_at ? new Date(key.created_at).toLocaleDateString('vi-VN') : '-'}</td>
+                        <td>
+                            <button class="action-btn" onclick="resetKey(${key.id}, 'user')" title="Reset">
+                                <i class="fas fa-redo" style="color: #10b981;"></i>
+                            </button>
+                            <button class="action-btn" onclick="deleteKey(${key.id}, 'user')" title="Delete">
+                                <i class="fas fa-trash" style="color: #ef4444;"></i>
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            });
+            
+            tbody.innerHTML = html;
+        }
+
+        // ========== KEY ACTIONS (REAL API CALLS) ==========
+        async function generateServerKey() {
+            const name = document.getElementById('keyName').value.trim();
+            const description = document.getElementById('keyDescription').value.trim();
+            const expires = document.getElementById('keyExpires').value;
+            
+            if (!expires || parseInt(expires) < 1) {
+                showNotification('❌ Vui lòng nhập số ngày hợp lệ', 'error');
+                return;
+            }
+            
+            try {
+                showNotification('🔄 Đang tạo key...', 'info');
+                
+                const response = await fetch('/api/server-key/generate', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        name: name || undefined,
+                        description: description || undefined,
+                        expires_in_days: parseInt(expires)
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showNotification('✅ Server key đã được tạo!', 'success');
+                    
+                    // Clear form
+                    document.getElementById('keyName').value = '';
+                    document.getElementById('keyDescription').value = '';
+                    
+                    // Load lại server keys
+                    await loadServerKeys();
+                    await loadStats();
+                    
+                    // Switch to server keys tab
+                    switchTab('server');
+                    
+                    // Copy key to clipboard
+                    copyToClipboard(data.server_key);
+                    
+                } else {
+                    showNotification('❌ Lỗi tạo key: ' + (data.error || 'Unknown error'), 'error');
+                }
+                
+            } catch (error) {
+                console.error('Error generating key:', error);
+                showNotification('❌ Lỗi kết nối khi tạo key', 'error');
+            }
+        }
+
+        async function resetKey(id, type) {
+            showModal(
+                'Reset Key',
+                `Bạn có chắc muốn reset ${type} key này? Lịch sử sử dụng sẽ được đặt về 0.`,
+                async function() {
+                    try {
+                        // Note: Cần thêm endpoint reset trong backend
+                        // Hiện tại chưa có, nên gọi API update status
+                        const endpoint = type === 'server' ? '/api/server-key/' : '/api/user-key/';
+                        
+                        const response = await fetch(`/api/${type}-key/${id}/status`, {
+                            method: 'PUT',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({ status: 'active' })
+                        });
+                        
+                        const data = await response.json();
+                        
+                        if (data.success) {
+                            showNotification('✅ Key đã được reset', 'success');
+                            if (type === 'server') {
+                                await loadServerKeys();
+                            } else {
+                                await loadUserKeys();
+                            }
+                            await loadStats();
+                        } else {
+                            showNotification('❌ Lỗi reset key: ' + (data.error || 'Unknown error'), 'error');
+                        }
+                    } catch (error) {
+                        console.error('Error resetting key:', error);
+                        showNotification('❌ Lỗi kết nối khi reset key', 'error');
+                    }
+                }
+            );
+        }
+
+        async function toggleLockKey(id, type) {
+            try {
+                // Lấy thông tin key hiện tại
+                const key = serverKeys.find(k => k.id === id);
+                if (!key) return;
+                
+                const action = key.status === 'locked' ? 'unlock' : 'lock';
+                const actionText = key.status === 'locked' ? 'mở khóa' : 'khóa';
+                const newStatus = action === 'lock' ? 'locked' : 'active';
+                
+                showModal(
+                    `${action === 'lock' ? 'Lock' : 'Unlock'} Key`,
+                    `Bạn có chắc muốn ${actionText} key này?`,
+                    async function() {
+                        try {
+                            const response = await fetch(`/api/${type}-key/${id}/status`, {
+                                method: 'PUT',
+                                headers: {
+                                    'Content-Type': 'application/json'
+                                },
+                                body: JSON.stringify({ status: newStatus })
+                            });
+                            
+                            const data = await response.json();
+                            
+                            if (data.success) {
+                                showNotification(`✅ Key đã được ${actionText}`, 'success');
+                                await loadServerKeys();
+                                await loadStats();
+                            } else {
+                                showNotification('❌ Lỗi thao tác với key: ' + (data.error || 'Unknown error'), 'error');
+                            }
+                        } catch (error) {
+                            console.error('Error toggling lock:', error);
+                            showNotification('❌ Lỗi kết nối khi thao tác với key', 'error');
+                        }
+                    }
+                );
+            } catch (error) {
+                console.error('Error preparing lock toggle:', error);
+            }
+        }
+
+        async function deleteKey(id, type) {
+            showModal(
+                'Xóa Key',
+                `Bạn có chắc muốn xóa ${type} key này? Hành động này không thể hoàn tác!`,
+                async function() {
+                    try {
+                        const response = await fetch(`/api/${type}-key/${id}`, {
+                            method: 'DELETE'
+                        });
+                        
+                        const data = await response.json();
+                        
+                        if (data.success) {
+                            showNotification('✅ Key đã được xóa', 'success');
+                            if (type === 'server') {
+                                await loadServerKeys();
+                            } else {
+                                await loadUserKeys();
+                            }
+                            await loadStats();
+                        } else {
+                            showNotification('❌ Lỗi xóa key: ' + (data.error || 'Unknown error'), 'error');
+                        }
+                    } catch (error) {
+                        console.error('Error deleting key:', error);
+                        showNotification('❌ Lỗi kết nối khi xóa key', 'error');
+                    }
+                }
+            );
+        }
+
+        // ========== REFRESH FUNCTION ==========
+        async function refreshAllData() {
+            showNotification('🔄 Đang làm mới dữ liệu...', 'info');
+            try {
+                await Promise.all([
+                    loadStats(),
+                    loadServerKeys(),
+                    loadUserKeys()
+                ]);
+                showNotification('✅ Dữ liệu đã được làm mới', 'success');
+            } catch (error) {
+                showNotification('❌ Lỗi làm mới dữ liệu', 'error');
+            }
+        }
+
+        // ========== INITIALIZATION ==========
+        async function initDashboard() {
+            // Load all data
+            await refreshAllData();
+        }
+
+        // ========== START APPLICATION ==========
+        document.addEventListener('DOMContentLoaded', async function() {
+            // Kiểm tra auth trước
+            await checkAuth();
+        });
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            // Ctrl + R để refresh
+            if (e.ctrlKey && e.key === 'r') {
+                e.preventDefault();
+                refreshAllData();
+            }
+            
+            // Escape để đóng modal và notification
+            if (e.key === 'Escape') {
+                closeModal();
+                document.querySelectorAll('.notification').forEach(n => n.remove());
+            }
+        });
+    </script>
+</body>
+</html>
