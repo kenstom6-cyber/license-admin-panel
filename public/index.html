@@ -1,83 +1,145 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <title>License Admin Panel</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      background: #0f172a;
+      font-family: Arial, Helvetica, sans-serif;
+      color: #e5e7eb;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+    }
+
+    .panel {
+      background: #020617;
+      padding: 30px;
+      border-radius: 10px;
+      width: 100%;
+      max-width: 420px;
+      box-shadow: 0 0 20px rgba(0,0,0,.6);
+    }
+
+    h1 {
+      margin-top: 0;
+      text-align: center;
+      margin-bottom: 20px;
+      font-size: 22px;
+    }
+
+    input {
+      width: 100%;
+      padding: 10px;
+      margin-bottom: 12px;
+      border-radius: 6px;
+      border: none;
+      background: #1e293b;
+      color: #e5e7eb;
+      font-size: 14px;
+    }
+
+    button {
+      width: 100%;
+      padding: 10px;
+      margin-top: 8px;
+      border-radius: 6px;
+      border: none;
+      cursor: pointer;
+      background: #2563eb;
+      color: white;
+      font-size: 14px;
+    }
+
+    button:hover {
+      background: #1d4ed8;
+    }
+
+    pre {
+      margin-top: 15px;
+      padding: 10px;
+      background: #020617;
+      border: 1px solid #1e293b;
+      border-radius: 6px;
+      max-height: 200px;
+      overflow: auto;
+      font-size: 13px;
+    }
+
+    footer {
+      text-align: center;
+      font-size: 12px;
+      margin-top: 10px;
+      opacity: 0.6;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="panel">
+    <h1>🔐 License Admin Panel</h1>
+
+    <input id="licenseKey" placeholder="License Key (VD: ABC-123-XYZ)" />
+    <input id="hwid" placeholder="HWID (VD: PC-TEST-001)" />
+
+    <button onclick="activate()">Activate License</button>
+    <button onclick="verify()">Verify License</button>
+
+    <pre id="result">Chưa có dữ liệu</pre>
+
+    <footer>
+      Cloudflare Pages + Workers
+    </footer>
+  </div>
+
 <script>
-/* =========================================
-   ADMIN PANEL LOGIN SCRIPT – FIX HOÀN CHỈNH
-   Đồng bộ 100% với server API
-========================================= */
+  // ===== BACKEND API (WORKER CỦA BẠN) =====
+  const API_URL = "https://license-worker.kenstom6.workers.dev";
 
-async function checkServer() {
-    try {
-        const res = await fetch('/api/health');
-        if (!res.ok) throw new Error();
+  // Nếu bạn đã bật API_SECRET trong Worker
+  const API_SECRET = "my_super_secret_123"; // đổi nếu cần
 
-        // Server OK → ẩn lỗi
-        const errorDiv = document.getElementById('error');
-        if (errorDiv) errorDiv.style.display = 'none';
-    } catch (e) {
-        const errorDiv = document.getElementById('error');
-        if (errorDiv) {
-            errorDiv.textContent = '❌ Lỗi kết nối server';
-            errorDiv.style.display = 'block';
-        }
+  async function activate() {
+    callApi("/activate");
+  }
+
+  async function verify() {
+    callApi("/verify");
+  }
+
+  async function callApi(path) {
+    const licenseKey = document.getElementById("licenseKey").value.trim();
+    const hwid = document.getElementById("hwid").value.trim();
+    const result = document.getElementById("result");
+
+    if (!licenseKey || !hwid) {
+      result.textContent = "❌ Vui lòng nhập License Key và HWID";
+      return;
     }
-}
-
-document.getElementById('loginBtn').addEventListener('click', async function () {
-    const username = document.getElementById('username').value.trim();
-    const password = document.getElementById('password').value.trim();
-
-    const errorDiv = document.getElementById('error');
-    const btn = this;
-    const btnText = btn.querySelector('span') || btn;
-
-    if (!username || !password) {
-        errorDiv.textContent = '❌ Vui lòng nhập đầy đủ thông tin';
-        errorDiv.style.display = 'block';
-        return;
-    }
-
-    // Disable button
-    btn.disabled = true;
-    btnText.textContent = 'Đang đăng nhập...';
 
     try {
-        const res = await fetch('/api/admin/login', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            credentials: 'include',
-            body: JSON.stringify({
-                username: username,
-                password: password
-            })
-        });
+      const res = await fetch(API_URL + path, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-api-secret": API_SECRET
+        },
+        body: JSON.stringify({ licenseKey, hwid })
+      });
 
-        const data = await res.json();
-
-        if (res.ok && data.success === true) {
-            // Đăng nhập thành công
-            window.location.href = '/dashboard.html';
-            return;
-        }
-
-        // Sai tài khoản
-        errorDiv.textContent = '❌ Sai tài khoản hoặc mật khẩu';
-        errorDiv.style.display = 'block';
-
-    } catch (error) {
-        console.error('Login error:', error);
-        errorDiv.textContent = '❌ Lỗi kết nối server';
-        errorDiv.style.display = 'block';
-    } finally {
-        // Reset button
-        btn.disabled = false;
-        btnText.textContent = 'Đăng Nhập';
+      const data = await res.json();
+      result.textContent = JSON.stringify(data, null, 2);
+    } catch (err) {
+      result.textContent = "❌ Không kết nối được tới License Server";
     }
-});
-
-// ========== KHỞI TẠO ==========
-window.addEventListener('DOMContentLoaded', function () {
-    checkServer();
-    document.getElementById('username').focus();
-});
+  }
 </script>
+
+</body>
+</html>
