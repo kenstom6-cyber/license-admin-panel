@@ -1,219 +1,117 @@
-<!DOCTYPE html>
-<html lang="vi">
-<head>
-  <meta charset="UTF-8" />
-  <title>License Admin Panel</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <style>
-    body {
-      margin: 0;
-      font-family: Arial, Helvetica, sans-serif;
-      background: linear-gradient(120deg, #0f172a, #020617);
-      color: #e5e7eb;
+export default {
+  async fetch(req, env) {
+    // ===== CORS PREFLIGHT =====
+    if (req.method === "OPTIONS") {
+      return new Response(null, {
+        status: 204,
+        headers: corsHeaders()
+      });
     }
 
-    .container {
-      max-width: 900px;
-      margin: 40px auto;
-      padding: 30px;
-      background: rgba(15, 23, 42, 0.85);
-      border-radius: 12px;
-      box-shadow: 0 0 30px rgba(0,0,0,0.6);
+    const url = new URL(req.url);
+
+    if (url.pathname === "/activate" && req.method === "POST") {
+      return activate(req, env);
     }
 
-    h1 {
-      margin-top: 0;
-      margin-bottom: 20px;
+    if (url.pathname === "/verify" && req.method === "POST") {
+      return verify(req, env);
     }
 
-    h2 {
-      margin-top: 40px;
-      border-bottom: 1px solid #334155;
-      padding-bottom: 8px;
+    if (url.pathname === "/create" && req.method === "POST") {
+      return createKey(env);
     }
 
-    label {
-      display: block;
-      margin-top: 12px;
-      margin-bottom: 4px;
-      font-size: 14px;
+    if (url.pathname === "/reset" && req.method === "POST") {
+      return resetKey(req, env);
     }
 
-    input {
-      width: 100%;
-      padding: 10px;
-      border-radius: 6px;
-      border: none;
-      outline: none;
-      background: #020617;
-      color: #e5e7eb;
+    if (url.pathname === "/lock" && req.method === "POST") {
+      return lockKey(req, env);
     }
 
-    button {
-      margin-top: 12px;
-      padding: 10px 16px;
-      border-radius: 6px;
-      border: none;
-      cursor: pointer;
-      font-weight: bold;
-      background: #2563eb;
-      color: white;
-    }
+    return json({ error: "Not Found" }, 404);
+  }
+};
 
-    button.danger {
-      background: #dc2626;
-    }
-
-    button.secondary {
-      background: #475569;
-    }
-
-    pre {
-      background: #020617;
-      padding: 12px;
-      border-radius: 6px;
-      margin-top: 10px;
-      white-space: pre-wrap;
-      word-break: break-word;
-    }
-
-    .row {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 20px;
-    }
-
-    .status {
-      margin-top: 15px;
-      padding: 10px;
-      border-radius: 6px;
-      background: #020617;
-      color: #fca5a5;
-    }
-
-    .ok {
-      color: #86efac;
-    }
-  </style>
-</head>
-<body>
-
-<div class="container">
-  <h1>🔐 License Admin Panel</h1>
-
-  <!-- ================= USER ACTION ================= -->
-  <h2>Client / User</h2>
-
-  <label>License Key</label>
-  <input id="licenseKey" placeholder="XXXX-XXXX-XXXX" />
-
-  <label>HWID</label>
-  <input id="hwid" placeholder="PC-0101" />
-
-  <button onclick="activate()">Activate License</button>
-  <button class="secondary" onclick="verify()">Verify License</button>
-
-  <!-- ================= ADMIN ================= -->
-  <h2>Admin</h2>
-
-  <button onclick="createKey()">Create License Key</button>
-  <button class="secondary" onclick="resetKey()">Reset Key</button>
-  <button class="danger" onclick="lockKey()">Lock (Revoke) Key</button>
-
-  <!-- ================= SERVER KEY ================= -->
-  <h2>Server / CLI</h2>
-
-  <p>Server key (dùng cho shell script):</p>
-  <pre id="serverKey">x-server-key: &lt;SERVER_KEY_CỦA_BẠN&gt;</pre>
-
-  <p>Ví dụ verify bằng shell:</p>
-  <pre>
-curl -X POST https://license-worker.kenstom6.workers.dev/verify-cli \
--H "Content-Type: application/json" \
--H "x-server-key: &lt;SERVER_KEY&gt;" \
--d '{"licenseKey":"KEY","hwid":"PC-0101"}'
-  </pre>
-
-  <!-- ================= RESULT ================= -->
-  <div id="result" class="status">Chưa có thao tác</div>
-</div>
-
-<script>
-/* ================= CONFIG ================= */
-const API = "https://license-worker.kenstom6.workers.dev";
-
-/* ================= HELPERS ================= */
-function showResult(data, ok = false) {
-  const el = document.getElementById("result");
-  el.textContent = JSON.stringify(data, null, 2);
-  el.className = "status " + (ok ? "ok" : "");
+// ===== CORS HEADERS =====
+function corsHeaders() {
+  return {
+    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Methods": "POST, OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type"
+  };
 }
 
-async function post(path, body) {
-  const res = await fetch(API + path, {
-    method: "POST",
+function json(data, status = 200) {
+  return new Response(JSON.stringify(data), {
+    status,
     headers: {
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify(body)
+      "Content-Type": "application/json",
+      ...corsHeaders()
+    }
   });
-  return res.json();
 }
 
-/* ================= CLIENT ================= */
-async function activate() {
-  try {
-    const licenseKey = document.getElementById("licenseKey").value;
-    const hwid = document.getElementById("hwid").value;
-    const data = await post("/activate", { licenseKey, hwid });
-    showResult(data, !!data.success);
-  } catch {
-    showResult({ error: "Lỗi kết nối API" });
+// ===== LOGIC =====
+async function activate(req, env) {
+  const { licenseKey, hwid } = await req.json();
+  const data = await env.LICENSE_DB.get(licenseKey, "json");
+
+  if (!data) return json({ error: "Invalid license" }, 403);
+  if (data.revoked) return json({ error: "Revoked" }, 403);
+
+  if (data.activated && data.hwid !== hwid) {
+    return json({ error: "Already used" }, 403);
   }
+
+  data.activated = true;
+  data.hwid = hwid;
+  await env.LICENSE_DB.put(licenseKey, JSON.stringify(data));
+
+  return json({ success: true });
 }
 
-async function verify() {
-  try {
-    const licenseKey = document.getElementById("licenseKey").value;
-    const hwid = document.getElementById("hwid").value;
-    const data = await post("/verify", { licenseKey, hwid });
-    showResult(data, !!data.valid);
-  } catch {
-    showResult({ error: "Lỗi kết nối API" });
-  }
+async function verify(req, env) {
+  const { licenseKey, hwid } = await req.json();
+  const data = await env.LICENSE_DB.get(licenseKey, "json");
+
+  if (!data || data.revoked) return json({ valid: false });
+  if (data.hwid !== hwid) return json({ valid: false });
+
+  return json({ valid: true });
 }
 
-/* ================= ADMIN ================= */
-async function createKey() {
-  try {
-    const data = await post("/create", {});
-    document.getElementById("licenseKey").value = data.licenseKey;
-    showResult(data, true);
-  } catch {
-    showResult({ error: "Không tạo được key" });
-  }
+async function createKey(env) {
+  const licenseKey = crypto.randomUUID().toUpperCase();
+  await env.LICENSE_DB.put(
+    licenseKey,
+    JSON.stringify({ activated: false, revoked: false })
+  );
+  return json({ licenseKey });
 }
 
-async function resetKey() {
-  try {
-    const licenseKey = document.getElementById("licenseKey").value;
-    const data = await post("/reset", { licenseKey });
-    showResult(data, true);
-  } catch {
-    showResult({ error: "Reset thất bại" });
-  }
+async function resetKey(req, env) {
+  const { licenseKey } = await req.json();
+  const data = await env.LICENSE_DB.get(licenseKey, "json");
+
+  if (!data) return json({ error: "Not found" }, 404);
+
+  data.activated = false;
+  data.hwid = null;
+  await env.LICENSE_DB.put(licenseKey, JSON.stringify(data));
+
+  return json({ success: true });
 }
 
-async function lockKey() {
-  try {
-    const licenseKey = document.getElementById("licenseKey").value;
-    const data = await post("/lock", { licenseKey });
-    showResult(data, true);
-  } catch {
-    showResult({ error: "Lock key thất bại" });
-  }
-}
-</script>
+async function lockKey(req, env) {
+  const { licenseKey } = await req.json();
+  const data = await env.LICENSE_DB.get(licenseKey, "json");
 
-</body>
-</html>
+  if (!data) return json({ error: "Not found" }, 404);
+
+  data.revoked = true;
+  await env.LICENSE_DB.put(licenseKey, JSON.stringify(data));
+
+  return json({ success: true });
+}
