@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <title>License Admin Panel</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #0f172a;
+      color: #e5e7eb;
+      padding: 30px;
+    }
+    h2 { margin-bottom: 20px; }
+    input, button {
+      display: block;
+      width: 320px;
+      padding: 10px;
+      margin: 10px 0;
+      border-radius: 6px;
+      border: none;
+    }
+    input {
+      background: #1e293b;
+      color: #e5e7eb;
+    }
+    button {
+      background: #2563eb;
+      color: white;
+      cursor: pointer;
+    }
+    button:hover {
+      background: #1d4ed8;
+    }
+    pre {
+      background: #020617;
+      padding: 15px;
+      margin-top: 20px;
+      border-radius: 6px;
+      width: 500px;
+      overflow-x: auto;
+    }
+  </style>
+</head>
+<body>
+
+<h2>🔐 License Admin Panel</h2>
+
+<input id="licenseKey" placeholder="License Key (VD: ABC-123-XYZ)" />
+<input id="hwid" placeholder="HWID (VD: PC-TEST-001)" />
+
+<button onclick="activate()">Activate License</button>
+<button onclick="verify()">Verify License</button>
+
+<pre id="result">Result sẽ hiện ở đây…</pre>
+
+<script>
+/* === API BACKEND (ĐÃ SỬA THEO WORKER CỦA BẠN) === */
+const API = "https://license-worker.kenstom6.workers.dev";
+
+/* Nếu bạn đã bật API_SECRET trong Worker */
+const API_SECRET = "my_super_secret_123"; // đổi nếu bạn dùng secret khác
+
+async function activate() {
+  callApi("/activate");
+}
+
+async function verify() {
+  callApi("/verify");
+}
+
+async function callApi(path) {
+  const licenseKey = document.getElementById("licenseKey").value.trim();
+  const hwid = document.getElementById("hwid").value.trim();
+  const result = document.getElementById("result");
+
+  if (!licenseKey || !hwid) {
+    result.textContent = "❌ Vui lòng nhập License Key và HWID";
+    return;
+  }
+
+  try {
+    const res = await fetch(API + path, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-secret": API_SECRET
+      },
+      body: JSON.stringify({ licenseKey, hwid })
+    });
+
+    const data = await res.json();
+    result.textContent = JSON.stringify(data, null, 2);
+  } catch (err) {
+    result.textContent = "❌ Lỗi kết nối API";
+  }
+}
+</script>
+
+</body>
+</html>
